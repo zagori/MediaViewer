@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">MediaViewer</string>
+
+    <string name="button_start_modal_viewer">Start Modal Viewer</string>
+    <string name="button_start_persistent_viewer">Start Persistent Viewer</string>
+</resources>

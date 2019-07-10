@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion 28
@@ -8,7 +10,7 @@ android {
         minSdkVersion 19
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
 
     }
 
@@ -28,5 +30,55 @@ dependencies {
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
     implementation 'com.github.bumptech.glide:glide:4.9.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
-
 }
+
+
+//region Publish to jCenter
+def libGroupId = 'com.zagori'
+def libArtifactId = 'mediaviewer'
+def libVersion = '1.0.0'
+def libDesc = 'This Android project allows to display media(images and videos) in a sliding screen UI. It also allows to zoom images, play videos and add overlay on the viewer'
+def libLicenses = ['Apache-2.0']
+def libVCSUrl = 'https://github.com/zagori/MediaViewer.git'
+
+// Generate Source Jar
+task sourceJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier "sources"
+}
+
+// Create the publication with the pom configuration
+publishing {
+    publications {
+        MyPublication(MavenPublication) {
+            groupId libGroupId
+            artifactId libArtifactId
+            version libVersion
+            artifact(sourceJar)
+            artifact("$buildDir/outputs/aar/$libArtifactId-release.aar")
+        }
+    }
+}
+
+// Bintray config
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+    publications = ['MyPublication']
+    pkg {
+        repo = "maven"
+        name = "$libGroupId:$libArtifactId"
+        desc = libDesc
+        licenses = libLicenses
+        vcsUrl = libVCSUrl
+        version {
+            name = libVersion
+            vcsTag = libVersion
+            released = new Date()
+        }
+    }
+}
+//endregion

@@ -1,4 +1,4 @@
-<a href="https://bintray.com/zagori/maven/com.zagori:mediaviwer/1.0.0/link"><img src="https://api.bintray.com/packages/zagori/maven/com.zagori:mediaviewer/images/download.svg?version=1.0.0"/></a>
+<a href="https://bintray.com/beta/#/zagori/maven/com.zagori:mediaviewer?tab=overview"><img src="https://api.bintray.com/packages/zagori/maven/com.zagori:mediaviewer/images/download.svg?version=1.0.0"/></a>
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 

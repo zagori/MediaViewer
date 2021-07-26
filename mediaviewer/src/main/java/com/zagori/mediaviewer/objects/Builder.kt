@@ -1,6 +1,5 @@
 package com.zagori.mediaviewer.objects
 
-import android.content.Context
 import android.graphics.Color
 import android.view.View
 import com.zagori.mediaviewer.interfaces.OnDismissListener
@@ -9,7 +8,7 @@ import com.zagori.mediaviewer.interfaces.OnImageChangeListener
 /**
  * Builder class for ModalViewer
  */
-class Builder<T>(val context: Context, images: List<T>) {
+class Builder<T>(images: List<T>) {
     val dataSet: DataSet<T> = DataSet(images)
     var backgroundColor = Color.BLACK
     var startPosition = 0

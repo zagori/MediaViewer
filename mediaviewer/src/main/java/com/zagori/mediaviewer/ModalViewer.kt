@@ -12,14 +12,14 @@ import com.zagori.mediaviewer.interfaces.OnImageChangeListener
 import com.zagori.mediaviewer.objects.Builder
 import com.zagori.mediaviewer.views.MediaViewerView
 
-class ModalViewer(context: Context, images: List<String>) : OnDismissListener,
+class ModalViewer(private val context: Context, images: List<String>) : OnDismissListener,
     DialogInterface.OnKeyListener {
-    private val builder by lazy { Builder(context, images) }
+    private val builder by lazy { Builder(images) }
     private var dialog: AlertDialog? = null
     private var viewer: MediaViewerView? = null
 
     fun start() {
-        viewer = MediaViewerView(builder.context)
+        viewer = MediaViewerView(context)
         viewer!!.allowZooming(builder.isZoomingAllowed)
         viewer!!.allowSwipeToDismiss(builder.isSwipeToDismissAllowed)
         viewer!!.setOnDismissListener(this)
@@ -35,7 +35,7 @@ class ModalViewer(context: Context, images: List<String>) : OnDismissListener,
                 }
             }
         })
-        dialog = AlertDialog.Builder(builder.context, dialogStyle)
+        dialog = AlertDialog.Builder(context, dialogStyle)
             .setView(viewer)
             .setOnKeyListener(this)
             .create()

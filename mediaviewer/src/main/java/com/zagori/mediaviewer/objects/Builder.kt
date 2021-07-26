@@ -8,8 +8,7 @@ import com.zagori.mediaviewer.interfaces.OnImageChangeListener
 /**
  * Builder class for ModalViewer
  */
-class Builder<T>(images: List<T>) {
-    val dataSet: DataSet<T> = DataSet(images)
+class Builder(val medias: List<String>) {
     var backgroundColor = Color.BLACK
     var startPosition = 0
     var imageChangeListener: OnImageChangeListener? = null

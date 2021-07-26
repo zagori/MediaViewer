@@ -2,7 +2,6 @@ package com.zagori.mediaviewer.views;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -16,11 +15,11 @@ import androidx.viewpager.widget.ViewPager;
 import com.zagori.mediaviewer.R;
 import com.zagori.mediaviewer.adapters.ViewerAdapter;
 import com.zagori.mediaviewer.interfaces.OnDismissListener;
-import com.zagori.mediaviewer.objects.DataSet;
 import com.zagori.mediaviewer.tools.AnimationUtils;
 import com.zagori.mediaviewer.tools.SwipeDirectionDetector;
 import com.zagori.mediaviewer.tools.SwipeToDismissListener;
 
+import java.util.List;
 
 public class MediaViewerView extends RelativeLayout
         implements OnDismissListener, SwipeToDismissListener.OnViewMoveListener {
@@ -61,8 +60,8 @@ public class MediaViewerView extends RelativeLayout
         init();
     }
 
-    public void setUrls(DataSet<?> dataSet, int startPosition) {
-        adapter = new ViewerAdapter(getContext(), dataSet, isZoomingAllowed);
+    public void setUrls(List<String> images, int startPosition) {
+        adapter = new ViewerAdapter(getContext(), images, isZoomingAllowed);
         pager.setAdapter(adapter);
         setStartPosition(startPosition);
     }

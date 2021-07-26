@@ -7,19 +7,19 @@ import android.view.ViewGroup;
 import com.bumptech.glide.Glide;
 import com.github.chrisbanes.photoview.OnScaleChangedListener;
 import com.github.chrisbanes.photoview.PhotoView;
-import com.zagori.mediaviewer.objects.DataSet;
 
 import java.util.HashSet;
+import java.util.List;
 
 public class ViewerAdapter extends RecyclingPagerAdapter<ViewerAdapter.ImageViewHolder> {
     private Context context;
-    private DataSet<?> dataSet;
+    private List<String> medias;
     private HashSet<ImageViewHolder> holders;
     private boolean isZoomingAllowed;
 
-    public ViewerAdapter(Context context, DataSet<?> dataSet, boolean isZoomingAllowed) {
+    public ViewerAdapter(Context context, List<String> medias, boolean isZoomingAllowed) {
         this.context = context;
-        this.dataSet = dataSet;
+        this.medias = medias;
         this.holders = new HashSet<>();
         this.isZoomingAllowed = isZoomingAllowed;
     }
@@ -42,7 +42,7 @@ public class ViewerAdapter extends RecyclingPagerAdapter<ViewerAdapter.ImageView
 
     @Override
     public int getItemCount() {
-        return dataSet.getData().size();
+        return medias.size();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class ViewerAdapter extends RecyclingPagerAdapter<ViewerAdapter.ImageView
     }
 
     public String getUrl(int index) {
-        return dataSet.format(index);
+        return medias.get(index);
     }
 
     class ImageViewHolder extends ViewHolder implements OnScaleChangedListener {
@@ -92,7 +92,7 @@ public class ViewerAdapter extends RecyclingPagerAdapter<ViewerAdapter.ImageView
             this.position = position;
 
             Glide.with(context)
-                    .load(dataSet.format(position))
+                    .load(medias.get(position))
                     //.placeholder(R.drawable.ic_placeholder)
                     .into(photoView);
 

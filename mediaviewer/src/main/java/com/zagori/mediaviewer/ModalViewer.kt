@@ -27,7 +27,7 @@ class ModalViewer(private val context: Context, images: List<String>) : OnDismis
             setBackgroundColor(builder.backgroundColor)
             setImageMargin(builder.imageMarginPixels)
             setContainerPadding(builder.containerPaddingPixels)
-            setUrls(builder.dataSet, builder.startPosition)
+            setUrls(builder.medias, builder.startPosition)
             setPageChangeListener(object : SimpleOnPageChangeListener() {
                 override fun onPageSelected(position: Int) {
                     builder.imageChangeListener?.onImageChange(position)
@@ -37,7 +37,7 @@ class ModalViewer(private val context: Context, images: List<String>) : OnDismis
     }
 
     fun start() {
-        if (builder.dataSet.data.isEmpty()) {
+        if (builder.medias.isEmpty()) {
             Log.w(TAG, "Images list cannot be empty! Viewer ignored.")
             return
         }

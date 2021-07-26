@@ -1,183 +1,99 @@
-package com.zagori.mediaviewer;
+package com.zagori.mediaviewer
 
-import android.content.Context;
-import android.content.DialogInterface;
-import android.util.Log;
-import android.view.KeyEvent;
-import android.view.View;
+import android.content.Context
+import android.content.DialogInterface
+import android.util.Log
+import android.view.KeyEvent
+import android.view.View
+import androidx.appcompat.app.AlertDialog
+import androidx.viewpager.widget.ViewPager.SimpleOnPageChangeListener
+import com.zagori.mediaviewer.interfaces.OnDismissListener
+import com.zagori.mediaviewer.interfaces.OnImageChangeListener
+import com.zagori.mediaviewer.objects.Builder
+import com.zagori.mediaviewer.views.MediaViewerView
 
-import androidx.annotation.LayoutRes;
-import androidx.annotation.StyleRes;
-import androidx.appcompat.app.AlertDialog;
-import androidx.viewpager.widget.ViewPager;
+class ModalViewer(context: Context, images: List<String>) : OnDismissListener,
+    DialogInterface.OnKeyListener {
+    private val builder by lazy { Builder(context, images) }
+    private var dialog: AlertDialog? = null
+    private var viewer: MediaViewerView? = null
 
-import com.zagori.mediaviewer.interfaces.OnDismissListener;
-import com.zagori.mediaviewer.interfaces.OnImageChangeListener;
-import com.zagori.mediaviewer.objects.Builder;
-import com.zagori.mediaviewer.views.MediaViewerView;
+    fun start() {
+        viewer = MediaViewerView(builder.context)
+        viewer!!.allowZooming(builder.isZoomingAllowed)
+        viewer!!.allowSwipeToDismiss(builder.isSwipeToDismissAllowed)
+        viewer!!.setOnDismissListener(this)
+        viewer!!.setBackgroundColor(builder.backgroundColor)
+        viewer!!.setOverlayView(builder.overlayView)
+        viewer!!.setImageMargin(builder.imageMarginPixels)
+        viewer!!.setContainerPadding(builder.containerPaddingPixels)
+        viewer!!.setUrls(builder.dataSet, builder.startPosition)
+        viewer!!.setPageChangeListener(object : SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                if (builder.imageChangeListener != null) {
+                    builder.imageChangeListener!!.onImageChange(position)
+                }
+            }
+        })
+        dialog = AlertDialog.Builder(builder.context, dialogStyle)
+            .setView(viewer)
+            .setOnKeyListener(this)
+            .create()
+        dialog!!.setOnDismissListener { if (builder.onDismissListener != null) builder.onDismissListener!!.onDismiss() }
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-public class ModalViewer implements OnDismissListener, DialogInterface.OnKeyListener {
-
-    private static final String TAG = ModalViewer.class.getSimpleName();
-
-    private Builder builder;
-    private AlertDialog dialog;
-    private MediaViewerView viewer;
-
-    public static ModalViewer load(Context context, String[] images){
-        return new ModalViewer(context, new ArrayList<>(Arrays.asList(images)));
-    }
-
-    public static ModalViewer load(Context context, List<String> images){
-        return new ModalViewer(context, images);
-    }
-
-    public ModalViewer build(){
-        return new ModalViewer();
-    }
-
-    private ModalViewer(){ }
-
-    private ModalViewer(Context context, List<String> images){
-        this.builder = new Builder<>(context, images);
-    }
-
-    public void start(){
-        createDialog();
-        if (!builder.getDataSet().getData().isEmpty()) {
-            dialog.show();
+        if (builder.dataSet.data.isNotEmpty()) {
+            dialog!!.show()
         } else {
-            Log.w(TAG, "Images list cannot be empty! Viewer ignored.");
+            Log.w(TAG, "Images list cannot be empty! Viewer ignored.")
         }
     }
 
-
-
-
-    /*public ModalViewer(Builder builder) {
-        this.builder = builder;
-        createDialog();
-    }*/
-
-    /*public static void start(Builder builder){
-        ModalViewer modalViewer = new ModalViewer(builder);
-        modalViewer.show();
-    }*/
-
-    /**
-     * Displays the built viewer if passed images list isn't empty
-     */
-    /*public void show() {
-        if (!builder.getDataSet().getData().isEmpty()) {
-            dialog.show();
-        } else {
-            Log.w(TAG, "Images list cannot be empty! Viewer ignored.");
-        }
-    }*/
-
-    public ModalViewer hideStatusBar(boolean hide){
-        builder.hideStatusBar(hide);
-        return this;
+    fun hideStatusBar(hide: Boolean): ModalViewer {
+        builder.isStatusBarHidden = hide
+        return this
     }
 
-    public ModalViewer allowZooming(boolean allow){
-        builder.allowZooming(allow);
-        return this;
+    fun allowZooming(allow: Boolean): ModalViewer {
+        builder.isZoomingAllowed = allow
+        return this
     }
 
-    public ModalViewer allowSwipeToDismiss(boolean allow){
-        builder.allowSwipeToDismiss(allow);
-        return this;
+    fun allowSwipeToDismiss(allow: Boolean): ModalViewer {
+        builder.isSwipeToDismissAllowed = allow
+        return this
     }
 
-    public ModalViewer addOverlay(View overlay){
-        builder.setOverlayView(overlay);
-        return this;
+    fun addOverlay(overlay: View?): ModalViewer {
+        builder.overlayView = overlay
+        return this
     }
 
-    public ModalViewer addOverlay(@LayoutRes int overlayRes){
-        builder.setOverlayView(overlayRes);
-        return this;
-    }
-
-    public ModalViewer setImageChangeListener(OnImageChangeListener onImageChangeListener){
-        builder.setImageChangeListener(onImageChangeListener);
-        return this;
-    }
-
-
-    public String getUrl() {
-        return viewer.getUrl();
-    }
-
-    private void createDialog() {
-        viewer = new MediaViewerView(builder.getContext());
-        viewer.allowZooming(builder.isZoomingAllowed());
-        viewer.allowSwipeToDismiss(builder.isSwipeToDismissAllowed());
-        viewer.setOnDismissListener(this);
-        viewer.setBackgroundColor(builder.getBackgroundColor());
-        viewer.setOverlayView(builder.getOverlayView());
-        viewer.setImageMargin(builder.getImageMarginPixels());
-        viewer.setContainerPadding(builder.getContainerPaddingPixels());
-        viewer.setUrls(builder.getDataSet(), builder.getStartPosition());
-        viewer.setPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-            @Override
-            public void onPageSelected(int position) {
-                if (builder.getImageChangeListener() != null) {
-                    builder.getImageChangeListener().onImageChange(position);
-                }
-            }
-        });
-
-        dialog = new AlertDialog.Builder(builder.getContext(), getDialogStyle())
-                .setView(viewer)
-                .setOnKeyListener(this)
-                .create();
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface dialogInterface) {
-                if (builder.getOnDismissListener() != null) {
-                    builder.getOnDismissListener().onDismiss();
-                }
-            }
-        });
+    fun setImageChangeListener(onImageChangeListener: OnImageChangeListener?): ModalViewer {
+        builder.imageChangeListener = onImageChangeListener
+        return this
     }
 
     /**
      * Fires when swipe to dismiss was initiated
      */
-    @Override
-    public void onDismiss() {
-        dialog.dismiss();
+    override fun onDismiss() {
+        dialog!!.dismiss()
     }
 
     /**
-     * Resets image on {@literal KeyEvent.KEYCODE_BACK} to normal scale if needed, otherwise - hide the viewer.
+     * Resets image on KeyEvent.KEYCODE_BACK to normal scale if needed, otherwise - hide the viewer.
      */
-    @Override
-    public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK &&
-                event.getAction() == KeyEvent.ACTION_UP &&
-                !event.isCanceled()) {
-            if (viewer.isScaled()) {
-                viewer.resetScale();
-            } else {
-                dialog.cancel();
-            }
+    override fun onKey(dialog: DialogInterface, keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
+            if (viewer!!.isScaled) viewer!!.resetScale() else dialog.cancel()
         }
-        return true;
+        return true
     }
 
-    private @StyleRes
-    int getDialogStyle() {
-        return builder.isStatusBarHidden()
-                ? android.R.style.Theme_Translucent_NoTitleBar_Fullscreen
-                : android.R.style.Theme_Translucent_NoTitleBar;
+    private val dialogStyle: Int
+        get() = if (builder.isStatusBarHidden) android.R.style.Theme_Translucent_NoTitleBar_Fullscreen else android.R.style.Theme_Translucent_NoTitleBar
+
+    companion object {
+        private val TAG = ModalViewer::class.java.simpleName
     }
-
-
 }

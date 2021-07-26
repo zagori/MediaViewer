@@ -1,7 +1,6 @@
 package com.zagori.sample
 
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -31,10 +30,13 @@ class MainActivity : AppCompatActivity() {
         txtOverlayTitle = overlayView.findViewById(R.id.title)
         txtOverlayIndicator = overlayView.findViewById(R.id.indicator)
         txtOverlayDescription = overlayView.findViewById(R.id.description)
+
+        binding.showModal.setOnClickListener {
+            startModalMediaViewer()
+        }
     }
 
-    fun startModalMediaViewer(view: View?) = ModalViewer
-        .load(this, posterImages)
+    private fun startModalMediaViewer() = ModalViewer(this, posterImages)
         .hideStatusBar(true)
         .allowZooming(true)
         .allowSwipeToDismiss(true)
@@ -57,6 +59,4 @@ class MainActivity : AppCompatActivity() {
             }
         }
         .start()
-
-    fun startPersistentMediaViewer(view: View?) {}
 }

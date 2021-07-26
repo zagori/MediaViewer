@@ -8,15 +8,9 @@
     tools:context=".MainActivity">
 
     <Button
+        android:id="@+id/show_modal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/button_start_modal_viewer"
-        android:onClick="startModalMediaViewer"/>
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/button_start_persistent_viewer"
-        android:onClick="startPersistentMediaViewer"/>
+        android:text="@string/button_start_modal_viewer"/>
 
 </LinearLayout>

@@ -15,37 +15,34 @@ import com.zagori.mediaviewer.views.MediaViewerView
 class ModalViewer(private val context: Context, images: List<String>) : OnDismissListener,
     DialogInterface.OnKeyListener {
     private val builder by lazy { Builder(images) }
-    private var dialog: AlertDialog? = null
-    private var viewer: MediaViewerView? = null
+    private val dialog by lazy {
+        AlertDialog.Builder(context, dialogStyle)
+            .setOnKeyListener(this)
+            .setOnDismissListener { builder.onDismissListener?.onDismiss()  }
+            .create()
+    }
+    private val viewer by lazy {
+        MediaViewerView(context).apply {
+            setOnDismissListener(this)
+            setBackgroundColor(builder.backgroundColor)
+            setImageMargin(builder.imageMarginPixels)
+            setContainerPadding(builder.containerPaddingPixels)
+            setUrls(builder.dataSet, builder.startPosition)
+            setPageChangeListener(object : SimpleOnPageChangeListener() {
+                override fun onPageSelected(position: Int) {
+                    builder.imageChangeListener?.onImageChange(position)
+                }
+            })
+        }
+    }
 
     fun start() {
-        viewer = MediaViewerView(context)
-        viewer!!.allowZooming(builder.isZoomingAllowed)
-        viewer!!.allowSwipeToDismiss(builder.isSwipeToDismissAllowed)
-        viewer!!.setOnDismissListener(this)
-        viewer!!.setBackgroundColor(builder.backgroundColor)
-        viewer!!.setOverlayView(builder.overlayView)
-        viewer!!.setImageMargin(builder.imageMarginPixels)
-        viewer!!.setContainerPadding(builder.containerPaddingPixels)
-        viewer!!.setUrls(builder.dataSet, builder.startPosition)
-        viewer!!.setPageChangeListener(object : SimpleOnPageChangeListener() {
-            override fun onPageSelected(position: Int) {
-                if (builder.imageChangeListener != null) {
-                    builder.imageChangeListener!!.onImageChange(position)
-                }
-            }
-        })
-        dialog = AlertDialog.Builder(context, dialogStyle)
-            .setView(viewer)
-            .setOnKeyListener(this)
-            .create()
-        dialog!!.setOnDismissListener { if (builder.onDismissListener != null) builder.onDismissListener!!.onDismiss() }
-
-        if (builder.dataSet.data.isNotEmpty()) {
-            dialog!!.show()
-        } else {
+        if (builder.dataSet.data.isEmpty()) {
             Log.w(TAG, "Images list cannot be empty! Viewer ignored.")
+            return
         }
+
+        dialog.apply { setView(viewer) }.show()
     }
 
     fun hideStatusBar(hide: Boolean): ModalViewer {
@@ -54,17 +51,17 @@ class ModalViewer(private val context: Context, images: List<String>) : OnDismis
     }
 
     fun allowZooming(allow: Boolean): ModalViewer {
-        builder.isZoomingAllowed = allow
+        viewer.allowZooming(allow)
         return this
     }
 
     fun allowSwipeToDismiss(allow: Boolean): ModalViewer {
-        builder.isSwipeToDismissAllowed = allow
+        viewer.allowSwipeToDismiss(allow)
         return this
     }
 
     fun addOverlay(overlay: View?): ModalViewer {
-        builder.overlayView = overlay
+        viewer.setOverlayView(overlay)
         return this
     }
 
@@ -77,7 +74,7 @@ class ModalViewer(private val context: Context, images: List<String>) : OnDismis
      * Fires when swipe to dismiss was initiated
      */
     override fun onDismiss() {
-        dialog!!.dismiss()
+        dialog.dismiss()
     }
 
     /**
@@ -85,7 +82,7 @@ class ModalViewer(private val context: Context, images: List<String>) : OnDismis
      */
     override fun onKey(dialog: DialogInterface, keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
-            if (viewer!!.isScaled) viewer!!.resetScale() else dialog.cancel()
+            if (viewer.isScaled) viewer.resetScale() else dialog.cancel()
         }
         return true
     }

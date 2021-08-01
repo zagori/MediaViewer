@@ -1,245 +1,190 @@
-package com.zagori.mediaviewer.views;
+package com.zagori.mediaviewer.views
 
-import android.content.Context;
-import android.util.AttributeSet;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.RelativeLayout;
+import android.content.Context
+import android.view.*
+import android.widget.RelativeLayout
+import com.zagori.mediaviewer.tools.SwipeToDismissListener.OnViewMoveListener
+import com.zagori.mediaviewer.adapters.ViewerAdapter
+import com.zagori.mediaviewer.tools.SwipeDirectionDetector
+import androidx.viewpager.widget.ViewPager.OnPageChangeListener
+import androidx.core.view.GestureDetectorCompat
+import com.zagori.mediaviewer.tools.SwipeToDismissListener
+import com.zagori.mediaviewer.R
+import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
+import android.view.GestureDetector.SimpleOnGestureListener
+import com.zagori.mediaviewer.databinding.ImageViewerBinding
+import com.zagori.mediaviewer.interfaces.OnDismissListener
+import com.zagori.mediaviewer.tools.AnimationUtils
+import kotlin.math.abs
 
-import androidx.core.view.GestureDetectorCompat;
-import androidx.viewpager.widget.ViewPager;
+class MediaViewerView(context: Context) : RelativeLayout(context), OnDismissListener,
+    OnViewMoveListener {
 
-import com.zagori.mediaviewer.R;
-import com.zagori.mediaviewer.adapters.ViewerAdapter;
-import com.zagori.mediaviewer.interfaces.OnDismissListener;
-import com.zagori.mediaviewer.tools.AnimationUtils;
-import com.zagori.mediaviewer.tools.SwipeDirectionDetector;
-import com.zagori.mediaviewer.tools.SwipeToDismissListener;
+    private var adapter: ViewerAdapter? = null
+    private var directionDetector: SwipeDirectionDetector? = null
+    private var scaleDetector: ScaleGestureDetector? = null
+    private var gestureDetector: GestureDetectorCompat? = null
+    private val swipeDismissListener by lazy {
+        SwipeToDismissListener(binding.dismissView, this, this)
+    }
+    private var overlayView: View? = null
+    private var direction: SwipeDirectionDetector.Direction? = null
+    private var wasScaled = false
+    private var onDismissListener: OnDismissListener? = null
+    private var isOverlayWasClicked = false
+    private var isZoomingAllowed = true
+    private var isSwipeToDismissAllowed = true
 
-import java.util.List;
+    private val binding by lazy { ImageViewerBinding.inflate(LayoutInflater.from(getContext())) }
 
-public class MediaViewerView extends RelativeLayout
-        implements OnDismissListener, SwipeToDismissListener.OnViewMoveListener {
-
-    private View backgroundView;
-    private MultiTouchViewPager pager;
-    private ViewerAdapter adapter;
-    private SwipeDirectionDetector directionDetector;
-    private ScaleGestureDetector scaleDetector;
-    private ViewPager.OnPageChangeListener pageChangeListener;
-    private GestureDetectorCompat gestureDetector;
-
-    private ViewGroup dismissContainer;
-    private SwipeToDismissListener swipeDismissListener;
-    private View overlayView;
-
-    private SwipeDirectionDetector.Direction direction;
-
-    private boolean wasScaled;
-    private OnDismissListener onDismissListener;
-    private boolean isOverlayWasClicked;
-
-    private boolean isZoomingAllowed = true;
-    private boolean isSwipeToDismissAllowed = true;
-
-    public MediaViewerView(Context context) {
-        super(context);
-        init();
+    init {
+        addView(binding.root)
+        binding.dismissContainer.setOnTouchListener(swipeDismissListener)
+        directionDetector = object : SwipeDirectionDetector(context) {
+            override fun onDirectionDetected(direction: Direction) {
+                this@MediaViewerView.direction = direction
+            }
+        }
+        scaleDetector = ScaleGestureDetector(
+            context,
+            SimpleOnScaleGestureListener()
+        )
+        gestureDetector = GestureDetectorCompat(context, object : SimpleOnGestureListener() {
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (binding.pager.isScrolled) {
+                    onClick(e, isOverlayWasClicked)
+                }
+                return false
+            }
+        })
     }
 
-    public MediaViewerView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init();
+    fun setUrls(images: List<String?>?, startPosition: Int) {
+        adapter = ViewerAdapter(context, images, isZoomingAllowed)
+        binding.pager.adapter = adapter
+        setStartPosition(startPosition)
     }
 
-    public MediaViewerView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init();
+    override fun setBackgroundColor(color: Int) {
+        findViewById<View>(R.id.background_view)
+            .setBackgroundColor(color)
     }
 
-    public void setUrls(List<String> images, int startPosition) {
-        adapter = new ViewerAdapter(getContext(), images, isZoomingAllowed);
-        pager.setAdapter(adapter);
-        setStartPosition(startPosition);
-    }
-
-    @Override
-    public void setBackgroundColor(int color) {
-        findViewById(R.id.background_view)
-                .setBackgroundColor(color);
-    }
-
-    public void setOverlayView(View view) {
-        this.overlayView = view;
+    fun setOverlayView(view: View) {
+        overlayView = view
         if (overlayView != null) {
             // check if view already has a parent. if so, detach it
-            if (view.getParent() != null) ((ViewGroup)view.getParent()).removeView(view);
-            dismissContainer.addView(view);
+            if (view.parent != null) (view.parent as ViewGroup).removeView(view)
+            binding.dismissContainer.addView(view)
         }
     }
 
-    public void allowZooming(boolean allowZooming) {
-        this.isZoomingAllowed = allowZooming;
+    fun allowZooming(allowZooming: Boolean) {
+        isZoomingAllowed = allowZooming
     }
 
-    public void allowSwipeToDismiss(boolean allowSwipeToDismiss) {
-        this.isSwipeToDismissAllowed = allowSwipeToDismiss;
+    fun allowSwipeToDismiss(allowSwipeToDismiss: Boolean) {
+        isSwipeToDismissAllowed = allowSwipeToDismiss
     }
 
-    public void setImageMargin(int marginPixels) {
-        pager.setPageMargin(marginPixels);
+    fun setImageMargin(marginPixels: Int) {
+        binding.pager.pageMargin = marginPixels
     }
 
-    public void setContainerPadding(int[] paddingPixels) {
-        pager.setPadding(
-                paddingPixels[0],
-                paddingPixels[1],
-                paddingPixels[2],
-                paddingPixels[3]);
-    }
+    fun setContainerPadding(paddingPixels: IntArray) = binding.pager.setPadding(
+        paddingPixels[0], paddingPixels[1], paddingPixels[2], paddingPixels[3]
+    )
 
-    private void init() {
-        inflate(getContext(), R.layout.image_viewer, this);
-
-        backgroundView = findViewById(R.id.background_view);
-        pager = (MultiTouchViewPager) findViewById(R.id.pager);
-
-        dismissContainer = (ViewGroup) findViewById(R.id.container);
-        swipeDismissListener = new SwipeToDismissListener(findViewById(R.id.dismiss_view), this, this);
-        dismissContainer.setOnTouchListener(swipeDismissListener);
-
-        directionDetector = new SwipeDirectionDetector(getContext()) {
-            @Override
-            public void onDirectionDetected(Direction direction) {
-                MediaViewerView.this.direction = direction;
-            }
-        };
-
-        scaleDetector = new ScaleGestureDetector(getContext(),
-                new ScaleGestureDetector.SimpleOnScaleGestureListener());
-
-        gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                if (pager.isScrolled()) {
-                    onClick(e, isOverlayWasClicked);
-                }
-                return false;
-            }
-        });
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        onUpDownEvent(event);
-
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        onUpDownEvent(event)
         if (direction == null) {
-            if (scaleDetector.isInProgress() || event.getPointerCount() > 1) {
-                wasScaled = true;
-                return pager.dispatchTouchEvent(event);
+            if (scaleDetector!!.isInProgress || event.pointerCount > 1) {
+                wasScaled = true
+                return binding.pager.dispatchTouchEvent(event)
             }
         }
-
-        if (!adapter.isScaled(pager.getCurrentItem())) {
-            directionDetector.onTouchEvent(event);
+        if (!adapter!!.isScaled(binding.pager.currentItem)) {
+            directionDetector!!.onTouchEvent(event)
             if (direction != null) {
-                switch (direction) {
-                    case UP:
-                    case DOWN:
-                        if (isSwipeToDismissAllowed && !wasScaled && pager.isScrolled()) {
-                            return swipeDismissListener.onTouch(dismissContainer, event);
-                        } else break;
-                    case LEFT:
-                    case RIGHT:
-                        return pager.dispatchTouchEvent(event);
+                when (direction) {
+                    SwipeDirectionDetector.Direction.UP, SwipeDirectionDetector.Direction.DOWN ->
+                        if (isSwipeToDismissAllowed && !wasScaled && binding.pager.isScrolled)
+                            return swipeDismissListener.onTouch(binding.dismissContainer, event)
+
+                    SwipeDirectionDetector.Direction.LEFT, SwipeDirectionDetector.Direction.RIGHT ->
+                        return binding.pager.dispatchTouchEvent(event)
                 }
             }
-            return true;
+            return true
         }
-        return super.dispatchTouchEvent(event);
+        return super.dispatchTouchEvent(event)
     }
 
-    @Override
-    public void onDismiss() {
+    override fun onDismiss() {
         if (onDismissListener != null) {
-            onDismissListener.onDismiss();
+            onDismissListener!!.onDismiss()
         }
     }
 
-    @Override
-    public void onViewMove(float translationY, int translationLimit) {
-        float alpha = 1.0f - (1.0f / translationLimit / 4) * Math.abs(translationY);
-        backgroundView.setAlpha(alpha);
-        if (overlayView != null) overlayView.setAlpha(alpha);
+    override fun onViewMove(translationY: Float, translationLimit: Int) {
+        val alpha = 1.0f - 1.0f / translationLimit / 4 * abs(translationY)
+        binding.backgroundView.alpha = alpha
+        if (overlayView != null) overlayView!!.alpha = alpha
     }
 
-    public void setOnDismissListener(OnDismissListener onDismissListener) {
-        this.onDismissListener = onDismissListener;
+    fun setOnDismissListener(onDismissListener: OnDismissListener?) {
+        this.onDismissListener = onDismissListener
     }
 
-    public void resetScale() {
-        adapter.resetScale(pager.getCurrentItem());
+    fun resetScale() {
+        adapter!!.resetScale(binding.pager.currentItem)
     }
 
-    public boolean isScaled() {
-        return adapter.isScaled(pager.getCurrentItem());
+    val isScaled: Boolean
+        get() = adapter!!.isScaled(binding.pager.currentItem)
+    val url: String
+        get() = adapter!!.getUrl(binding.pager.currentItem)
+
+    fun setPageChangeListener(pageChangeListener: OnPageChangeListener) {
+        binding.pager.addOnPageChangeListener(pageChangeListener)
+        pageChangeListener.onPageSelected(binding.pager.currentItem)
     }
 
-    public String getUrl() {
-        return adapter.getUrl(pager.getCurrentItem());
+    private fun setStartPosition(position: Int) {
+        binding.pager.currentItem = position
     }
 
-    public void setPageChangeListener(ViewPager.OnPageChangeListener pageChangeListener) {
-        pager.removeOnPageChangeListener(this.pageChangeListener);
-        this.pageChangeListener = pageChangeListener;
-        pager.addOnPageChangeListener(pageChangeListener);
-        pageChangeListener.onPageSelected(pager.getCurrentItem());
+    private fun onUpDownEvent(event: MotionEvent) {
+        if (event.action == MotionEvent.ACTION_UP) onActionUp(event)
+        if (event.action == MotionEvent.ACTION_DOWN) onActionDown(event)
+
+        scaleDetector!!.onTouchEvent(event)
+        gestureDetector!!.onTouchEvent(event)
     }
 
-    private void setStartPosition(int position) {
-        pager.setCurrentItem(position);
+    private fun onActionDown(event: MotionEvent) {
+        direction = null
+        wasScaled = false
+        binding.pager.dispatchTouchEvent(event)
+        swipeDismissListener.onTouch(binding.dismissContainer, event)
+        isOverlayWasClicked = dispatchOverlayTouch(event)
     }
 
-    private void onUpDownEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            onActionUp(event);
-        }
-
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            onActionDown(event);
-        }
-
-        scaleDetector.onTouchEvent(event);
-        gestureDetector.onTouchEvent(event);
+    private fun onActionUp(event: MotionEvent) {
+        swipeDismissListener.onTouch(binding.dismissContainer, event)
+        binding.pager.dispatchTouchEvent(event)
+        isOverlayWasClicked = dispatchOverlayTouch(event)
     }
 
-    private void onActionDown(MotionEvent event) {
-        direction = null;
-        wasScaled = false;
-        pager.dispatchTouchEvent(event);
-        swipeDismissListener.onTouch(dismissContainer, event);
-        isOverlayWasClicked = dispatchOverlayTouch(event);
-    }
-
-    private void onActionUp(MotionEvent event) {
-        swipeDismissListener.onTouch(dismissContainer, event);
-        pager.dispatchTouchEvent(event);
-        isOverlayWasClicked = dispatchOverlayTouch(event);
-    }
-
-    private void onClick(MotionEvent event, boolean isOverlayWasClicked) {
+    private fun onClick(event: MotionEvent, isOverlayWasClicked: Boolean) {
         if (overlayView != null && !isOverlayWasClicked) {
-            AnimationUtils.animateVisibility(overlayView);
-            super.dispatchTouchEvent(event);
+            AnimationUtils.animateVisibility(overlayView)
+            super.dispatchTouchEvent(event)
         }
     }
 
-    private boolean dispatchOverlayTouch(MotionEvent event) {
-        return overlayView != null
-                && overlayView.getVisibility() == VISIBLE
-                && overlayView.dispatchTouchEvent(event);
-    }
+    private fun dispatchOverlayTouch(event: MotionEvent): Boolean =
+        overlayView != null && overlayView!!.visibility == VISIBLE &&
+                overlayView!!.dispatchTouchEvent(event)
+
 }
